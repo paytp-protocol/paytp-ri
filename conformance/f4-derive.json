@@ -1,0 +1,19 @@
+{
+  "section": "F4 derivation anchors",
+  "note": "The entry_id anchor is REGENERATED (F4-c now commits AMT + T_open/T_lapse/contest). The prior 33f42cfb... value predated F4-c and no longer applies. AMT/T_open/T_lapse/contest below are pinned TEST inputs chosen for this vector (F10 pins seed_instance=aa32, nonce=bb32; it leaves the amount and deadlines to vector generation). Preimage = \"PayTPv1-entry\" || 0x00 || seed_instance(32) || nonce(32) || AMT(16 BE) || T_open(8 BE) || T_lapse(8 BE) || contest(8 BE) = 118 bytes. Independently confirmed by scripts/confirm_anchors.py.",
+  "vectors": [
+    {
+      "id": "f4-entry-id-001",
+      "title": "Tier 0 purchase entry_id, amount+deadline-in-key (F4-c)",
+      "inputs": {
+        "seed_instance": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "nonce": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "amt": "1000000",
+        "t_open": "2000000000",
+        "t_lapse": "2000086400",
+        "contest": "3600"
+      },
+      "expect": { "value": "78a667b30e6f5078683d9ee29684b53be2a58688f40b330c79aa9b580c13c66f" }
+    }
+  ]
+}

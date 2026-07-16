@@ -1,0 +1,28 @@
+[package]
+name = "paytp-rail"
+description = "The RailAdapter trait, the in-process virtual rail (programmable finality/fees/outage, native entry machine + split contract), and real adapters (M5)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[features]
+# Exposes the `deploy_*_unchecked` low-level rail helpers (arbitrary seed / recipients, NOT bound
+# to canonical ADDRESS_INPUTS) for the deterministic-mechanics tests and low-level demos. A normal
+# build CANNOT name them — the protocol deploy path (`deploy_split` / `deploy_instance`) recomputes
+# + validates the seed. Downstream test crates enable this via a dev-dependency on
+# paytp-rail with `features = ["test-helpers"]`; in-crate unit tests are covered by `cfg(test)`.
+test-helpers = []
+
+[dependencies]
+paytp-core = { path = "../paytp-core" }
+num-bigint = { workspace = true }
+
+[dev-dependencies]
+# Enable `test-helpers` for THIS crate's own integration tests (e.g. tests/async_conservation.rs),
+# which call the `deploy_*_unchecked` helpers. The standard self-dev-dep feature-unification trick
+# (same pattern as paytp-merchant's `demo`): a plain `cargo build` and any downstream consumer do
+# NOT get it. Unit tests in-src are already covered by `cfg(test)`.
+paytp-rail = { path = ".", features = ["test-helpers"] }

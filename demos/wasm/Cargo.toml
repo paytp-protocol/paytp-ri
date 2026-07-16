@@ -1,0 +1,47 @@
+# The DEMO wasm facade — a narrow, WASM-safe wrapper that runs the PURE parts of the
+# RI core (paytp-core + paytp-rail/VirtualRail + paytp-merchant/paytp-wallet) in the
+# browser and emits JSON *visualization traces* for the demo suite. This is NOT the
+# implementer SDK — implementers target the RI crates + the formal spec + the F10
+# vectors; its public API is demo trace functions, not a stable programming interface.
+# Standalone workspace (own `[workspace]`) so it never touches the host manifest.
+[package]
+name = "paytp-demo-wasm"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# `test-helpers` exposes `AcceptedBinding::for_test` — the meed-strip demo opens a channel
+# without standing up a full signed artifact (an illustration, not a binding claim; mirrors
+# the `demos/wedge` test-helpers use). `demo-governance` lets the redeem/settlement traces
+# run the governed value path on the placeholder governance constants (F9-e; fail-closed off in
+# production — a real build replaces the placeholders, not enables this feature).
+paytp-core = { path = "../../crates/paytp-core", features = ["test-helpers", "demo-governance"] }
+paytp-rail = { path = "../../crates/paytp-rail" }
+paytp-merchant = { path = "../../crates/paytp-merchant", features = ["demo"] }
+# paytp-wallet is the PAYER side (custody, policy gate, channel client). Pure — it
+# depends only on paytp-core + paytp-rail (no host I/O), so it extracts to wasm like
+# the merchant crate. Added for the D-09 adversarial paths, where the demo must show
+# the REAL payer-side gates refusing (Wallet::plan_two_leg, ChannelClient::open).
+paytp-wallet = { path = "../../crates/paytp-wallet" }
+num-bigint = "0.4"       # to construct SETTLEMENT_PROPOSE (BigUint amounts) for D-09
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# The Wasm-RNG boundary (a wasm32 gotcha): on wasm32, getrandom draws
+# from the browser's Web Crypto (`crypto.getRandomValues`) — exactly the G3 rule
+# (shipped SDK = Web Crypto only, no seeded RNG). No effect off-wasm.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
+[profile.release]
+opt-level = "s"      # optimize for size (a hard product gate)
+lto = true

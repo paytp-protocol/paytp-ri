@@ -1,0 +1,41 @@
+{
+  "section": "F1 encoding",
+  "note": "Encoding accept/reject vectors (F10.3). 'leb128' inputs are hex; accept vectors carry the decimal value. 'uint'/'sint' are minimal-integer hex. 'json_uint'/'json_sint' are the F1-c anchored string grammars. 'jcs_dup' documents are raw JSON text.",
+  "vectors": [
+    { "id": "f1-leb-accept-00",  "class": "leb128", "inputs": { "bytes": "00" },          "expect": { "verdict": "accept", "value": "0" } },
+    { "id": "f1-leb-accept-7f",  "class": "leb128", "inputs": { "bytes": "7f" },          "expect": { "verdict": "accept", "value": "127" } },
+    { "id": "f1-leb-accept-8001","class": "leb128", "inputs": { "bytes": "8001" },        "expect": { "verdict": "accept", "value": "128" } },
+    { "id": "f1-leb-accept-max", "class": "leb128", "inputs": { "bytes": "ffffffff0f" },  "expect": { "verdict": "accept", "value": "4294967295" } },
+    { "id": "f1-leb-reject-overlong", "class": "leb128", "inputs": { "bytes": "8000" },   "expect": { "verdict": "reject" } },
+    { "id": "f1-leb-reject-toolarge", "class": "leb128", "inputs": { "bytes": "ffffffff1f" }, "expect": { "verdict": "reject" } },
+
+    { "id": "f1-uint-accept-00",   "class": "uint", "inputs": { "bytes": "00" },   "expect": { "verdict": "accept", "value": "0" } },
+    { "id": "f1-uint-accept-01",   "class": "uint", "inputs": { "bytes": "01" },   "expect": { "verdict": "accept", "value": "1" } },
+    { "id": "f1-uint-accept-0100", "class": "uint", "inputs": { "bytes": "0100" }, "expect": { "verdict": "accept", "value": "256" } },
+    { "id": "f1-uint-reject-leadzero", "class": "uint", "inputs": { "bytes": "0001" }, "expect": { "verdict": "reject" } },
+    { "id": "f1-uint-reject-empty",    "class": "uint", "inputs": { "bytes": "" },     "expect": { "verdict": "reject" } },
+
+    { "id": "f1-sint-accept-ff",   "class": "sint", "inputs": { "bytes": "ff" },   "expect": { "verdict": "accept", "value": "-1" } },
+    { "id": "f1-sint-accept-80",   "class": "sint", "inputs": { "bytes": "80" },   "expect": { "verdict": "accept", "value": "-128" } },
+    { "id": "f1-sint-accept-0080", "class": "sint", "inputs": { "bytes": "0080" }, "expect": { "verdict": "accept", "value": "128" } },
+    { "id": "f1-sint-reject-ffff", "class": "sint", "inputs": { "bytes": "ffff" }, "expect": { "verdict": "reject" } },
+
+    { "id": "f1-json-uint-accept-0",    "class": "json_uint", "inputs": { "string": "0" },    "expect": { "verdict": "accept" } },
+    { "id": "f1-json-uint-accept-1000", "class": "json_uint", "inputs": { "string": "1000" }, "expect": { "verdict": "accept" } },
+    { "id": "f1-json-uint-reject-01",   "class": "json_uint", "inputs": { "string": "01" },   "expect": { "verdict": "reject" } },
+    { "id": "f1-json-uint-reject-1p0",  "class": "json_uint", "inputs": { "string": "1.0" },  "expect": { "verdict": "reject" } },
+    { "id": "f1-json-uint-reject-sp1",  "class": "json_uint", "inputs": { "string": " 1" },   "expect": { "verdict": "reject" } },
+    { "id": "f1-json-sint-reject-neg0", "class": "json_sint", "inputs": { "string": "-0" },   "expect": { "verdict": "reject" } },
+    { "id": "f1-json-sint-accept-neg1", "class": "json_sint", "inputs": { "string": "-1" },   "expect": { "verdict": "accept" } },
+
+    { "id": "f1-jcs-dup-toplevel", "class": "jcs_dup", "inputs": { "json": "{\"a\":1,\"a\":2}" },        "expect": { "verdict": "reject" } },
+    { "id": "f1-jcs-dup-nested",   "class": "jcs_dup", "inputs": { "json": "{\"o\":{\"b\":1,\"b\":2}}" }, "expect": { "verdict": "reject" } },
+    { "id": "f1-jcs-dup-clean",    "class": "jcs_dup", "inputs": { "json": "{\"a\":1,\"b\":2}" },        "expect": { "verdict": "accept" } },
+
+    { "id": "f1-frame-accept-two",   "class": "framing", "inputs": { "bytes": "030001aa030001bb" }, "expect": { "verdict": "accept" } },
+    { "id": "f1-frame-reject-bare",  "class": "framing", "inputs": { "bytes": "0001aa0001bb" },     "expect": { "verdict": "reject" } },
+    { "id": "f1-frame-reject-overrun","class": "framing","inputs": { "bytes": "050001aa" },         "expect": { "verdict": "reject" } },
+    { "id": "f1-frame-reject-trailing","class": "framing","inputs": { "bytes": "030001aa030001bb99" }, "expect": { "verdict": "reject" } },
+    { "id": "f1-frame-reject-invalid-member","class": "framing","inputs": { "bytes": "020005" },    "expect": { "verdict": "reject" } }
+  ]
+}

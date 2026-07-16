@@ -1,0 +1,49 @@
+[package]
+name = "paytp_kit"
+version = "0.1.0"
+description = "PayTP baseline-profile Anchor program: entry machine + governed split/meed distribution (F7-d), LiteSVM-tested."
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "paytp_kit"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+
+[dependencies]
+anchor-lang = "1.1.2"
+solana-sha256-hasher = "=3.1.0"
+# The shared no_std fixed-width F7 arithmetic — the SAME crate the host uses, so
+# the on-chain meed division cannot drift from the host (core-sharing).
+paytp-f7 = { path = "../../../crates/paytp-f7" }
+ruint = { version = "1", default-features = false }
+solana-sdk-ids = "3.1.0"
+solana-instructions-sysvar = "3.0.1"
+solana-pubkey = "3.0.0"
+
+[dev-dependencies]
+litesvm = { version = "0.10.0", features = ["precompiles"] }
+solana-signature = "3.0.0"
+solana-message = "3.0.1"
+solana-transaction = "3.0.2"
+solana-signer = "3.0.0"
+solana-keypair = "3.0.1"
+solana-instruction = "3.0.0"
+solana-pubkey = "3.0.0"
+solana-account = "3.0.0"
+paytp-f7 = { path = "../../../crates/paytp-f7" }
+ruint = { version = "1", default-features = false }
+
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

@@ -1,0 +1,157 @@
+name: CI
+
+# The gate that stands in front of every merge: "tests green" means green in CI,
+# not on one machine. M0 wires this so every later milestone inherits it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  build-test:
+    name: fmt + clippy + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: rustup show   # rust-toolchain.toml pins channel + components
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy --all-targets --all-features
+
+      - name: Test
+        run: cargo test --all-features --workspace
+
+      # The demo suite's wasm facade (demos/wasm/) is a SEPARATE workspace, so the
+      # root --workspace steps above never build it. Gate it here by manifest path
+      # so an RI API change that breaks the demo (e.g. a paytp-rail signature change)
+      # turns CI red instead of slipping through. Inherits RUSTFLAGS=-D warnings.
+      - name: Demo wasm — fmt
+        run: cargo fmt --manifest-path demos/wasm/Cargo.toml --all -- --check
+
+      - name: Demo wasm — clippy (deny warnings)
+        run: cargo clippy --manifest-path demos/wasm/Cargo.toml --all-targets --all-features
+
+      - name: Demo wasm — test
+        run: cargo test --manifest-path demos/wasm/Cargo.toml --all-features
+
+      # The M8 wedge demo (demos/wedge/) is ALSO its own workspace (empty [workspace]
+      # table), so neither the root --workspace steps nor the demos/wasm job above build
+      # it. That blind spot let wedge-channel silently fail to compile for ~a day when
+      # split_recipients was hardened to return Option. Gate
+      # it here by manifest path too, including the demo's own runnable assertions.
+      # Inherits RUSTFLAGS=-D warnings.
+      - name: Demo wedge — fmt
+        run: cargo fmt --manifest-path demos/wedge/Cargo.toml --all -- --check
+
+      - name: Demo wedge — clippy (deny warnings)
+        run: cargo clippy --manifest-path demos/wedge/Cargo.toml --all-targets -- -D warnings
+
+      - name: Demo wedge — build
+        run: cargo build --manifest-path demos/wedge/Cargo.toml
+
+      - name: Demo wedge — crossover self-check (wedge-channel exits non-zero on mismatch)
+        run: cargo run --manifest-path demos/wedge/Cargo.toml --bin wedge-channel
+
+      # The live-HTTP end-to-end gate: wedge-agent drives 402 → pay → 200 and then
+      # asserts the distribution meed settled to the roles (exit non-zero otherwise),
+      # exactly as its module doc designates it the CI gate. Native, no Docker.
+      - name: Demo wedge — live-HTTP e2e (meed settles end-to-end)
+        run: |
+          cargo build --manifest-path demos/wedge/Cargo.toml --bins
+          bin=demos/wedge/target/debug
+          WEDGE_ADDR=127.0.0.1:8402 "$bin/wedge-merchant" &
+          mpid=$!
+          trap 'kill "$mpid" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 30); do
+            if WEDGE_URL=http://127.0.0.1:8402 "$bin/wedge-agent" --healthcheck; then break; fi
+            sleep 0.5
+          done
+          WEDGE_URL=http://127.0.0.1:8402 "$bin/wedge-agent" 3
+
+  # The SBF contract kit (contracts/) is a SEPARATE workspace excluded from the root, with
+  # its own stable rust-toolchain.toml, so none of the steps above build it. Its LiteSVM
+  # tests load the compiled program (target/deploy/paytp_kit.so), so the job installs the
+  # Agave SBF toolchain, runs `cargo build-sbf` to produce the .so, then fmt/clippy/test at
+  # the same -D warnings bar as the host RI. Runs from contracts/ (its own toolchain).
+  contracts:
+    name: contracts — fmt + clippy + build-sbf + test (SBF kit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      # Solana runtime crates (solana-program-runtime, litesvm) pull host system libs on Linux.
+      - name: System deps
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libudev-dev libssl-dev
+        working-directory: .
+
+      - name: Install Rust toolchain (stable + rustfmt + clippy)
+        run: rustup show   # contracts/rust-toolchain.toml pins it
+
+      # cargo build-sbf ships with the Agave/Solana platform tools; pin the version proven
+      # to build against contracts/Cargo.lock (solana-cli 3.1.10). The installer puts
+      # cargo-build-sbf under active_release/bin — add it to PATH for later steps.
+      - name: Install Agave SBF toolchain
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+        working-directory: .
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-contracts-${{ hashFiles('contracts/Cargo.lock') }}
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      # clippy compiles the test targets but does not run them, so it needs no .so.
+      - name: Clippy (deny warnings)
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      # The LiteSVM tests load target/deploy/paytp_kit.so at runtime — build it first.
+      - name: Build SBF program (.so)
+        run: cargo build-sbf
+
+      - name: Test
+        run: cargo test --locked --all-features
+
+  # Independent SHA-256 confirmation of the hand-derived crypto anchors
+  # (F10.2 canonicalization discipline: a second, unrelated implementation must
+  # agree). Rust computes the anchors; Python's hashlib re-derives them from the
+  # documented preimages and asserts byte-equality with the checked-in vectors.
+  anchor-cross-check:
+    name: independent anchor cross-check (python hashlib)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Re-derive SHA-256 anchors independently
+        run: python3 scripts/confirm_anchors.py

@@ -1,0 +1,35 @@
+# M8 — the wedge demo. Two gates, both asserting the M8 exit criterion (a paid
+# request AND a settled meed end-to-end):
+#   - native:  build the demo crate, run the flow via cargo (fast feedback);
+#   - compose: the clean-room criterion — `docker compose up` + one client
+#              command; the agent's exit code is the assertion.
+name: wedge-demo
+
+on:
+  push:
+    paths:
+      - "demos/wedge/**"
+      - "crates/**"
+      - ".github/workflows/wedge-demo.yml"
+  pull_request:
+    paths:
+      - "demos/wedge/**"
+      - "crates/**"
+      - ".github/workflows/wedge-demo.yml"
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run the wedge demo end-to-end (native)
+        run: ./demos/wedge/run.sh 3
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the wedge demo end-to-end (docker compose, clean-room)
+        working-directory: demos/wedge
+        run: docker compose up --build --exit-code-from agent --abort-on-container-exit

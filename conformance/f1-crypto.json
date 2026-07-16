@@ -1,0 +1,49 @@
+{
+  "section": "F1.4/F1.3 crypto anchors",
+  "note": "SHA-256-only anchors, canonical by hand derivation (F10.2), independently confirmed by scripts/confirm_anchors.py (python hashlib). The composition anchors below (bindsalt/ksession/subkey/slicemac) are generation-required (F10.2): CONFIRMED at M7 by an independent second code path (crates/paytp-core/tests/composition_independent.rs) that re-derives each from the spec construction using the primitive crates directly, sharing no paytp-core code, and agrees byte-for-byte. Pinned inputs: payer_key=01x32, merchant_key=02x32, s=00x32, channel_id=0000000000000001.",
+  "status": "confirmed",
+  "vectors": [
+    {
+      "id": "f1-crypto-hs-001",
+      "title": "H(s) commitment for s = 00x32 (F2-e)",
+      "inputs": { "s": "0000000000000000000000000000000000000000000000000000000000000000" },
+      "expect": { "value": "07beb2f81d0dedb77061989b03ec26b604fc3681c19bbc2ea5ab2b78bae54826" }
+    },
+    {
+      "id": "f1-crypto-slice-prefix-001",
+      "title": "slice COVERED prefix = PayTPv1-slice || 0x00 (F1.3/F10.3)",
+      "inputs": { "label": "PayTPv1-slice" },
+      "expect": { "value": "506179545076312d736c69636500" }
+    },
+    {
+      "id": "f1-crypto-head0-001",
+      "title": "transcript head_0 for channel_id = 0000000000000001 (F5-g)",
+      "inputs": { "channel_id": "0000000000000001" },
+      "expect": { "value": "620dd196e36ac87470bde0e0910b0750775cf57e015926fcc67d1d86a0ef7455" }
+    },
+    {
+      "id": "f1-crypto-bindsalt-001",
+      "title": "BindSalt = SHA-256(payer_key || merchant_key), Change A (F1.6/F2.5) — composition, independently confirmed",
+      "inputs": { "payer_key": "0101010101010101010101010101010101010101010101010101010101010101", "merchant_key": "0202020202020202020202020202020202020202020202020202020202020202" },
+      "expect": { "value": "f818afd37a6dc3bc92fb44731011277006db4efa6e9023cd7468c02335d22a4d" }
+    },
+    {
+      "id": "f1-crypto-ksession-001",
+      "title": "K_session = HKDF(ikm=s, salt=BindSalt, info='PayTPv1-slice'||channel_id) (F1.5) — composition, independently confirmed",
+      "inputs": { "s": "0000000000000000000000000000000000000000000000000000000000000000", "bind_salt": "f818afd37a6dc3bc92fb44731011277006db4efa6e9023cd7468c02335d22a4d", "channel_id": "0000000000000001" },
+      "expect": { "value": "dc64f703f9a5830faf61aa8f671f98182dc38722a5b0f21a6a601ad0a4133189" }
+    },
+    {
+      "id": "f1-crypto-subkey-001",
+      "title": "subkey(SEQ=1) = HKDF(ikm=K_session, salt='', info=LE64(SEQ)) (F1.5) — composition, independently confirmed",
+      "inputs": { "k_session": "dc64f703f9a5830faf61aa8f671f98182dc38722a5b0f21a6a601ad0a4133189", "seq": "1" },
+      "expect": { "value": "d95e6aa957821c2097935dbcca39f0516acd396b95c3a95b0ac8c36a16768704" }
+    },
+    {
+      "id": "f1-crypto-slicemac-001",
+      "title": "slice TAG = Poly1305(subkey(1), COVERED(slice; SEQ=1, AMT_u=10000)) (F1.5) — composition, independently confirmed",
+      "inputs": { "subkey": "d95e6aa957821c2097935dbcca39f0516acd396b95c3a95b0ac8c36a16768704", "seq": "1", "amt_micro": "10000" },
+      "expect": { "value": "77f1d3796a6d837d22ad792449fb8851" }
+    }
+  ]
+}

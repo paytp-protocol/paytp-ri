@@ -1,0 +1,47 @@
+# The M8 wedge demo — a standalone workspace (its own `[workspace]` table) so it
+# never touches the host workspace's `Cargo.toml`. It depends on the sibling RI
+# crates by path; those crates resolve their `workspace = true` deps against the
+# host root, so this compiles against the exact same pinned versions.
+[package]
+name = "paytp-wedge-demo"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# An empty `[workspace]` table makes this directory its own workspace root — the
+# host `paytp-ri` workspace (explicit `members`, does not list `demos/`) is left
+# untouched, and `cargo` commands run here do not attach to it.
+[workspace]
+
+[dependencies]
+# `demo-governance`: this demo runs the governed VALUE path (merchant redeem → settlement) on
+# the release-bound placeholder governance constants (F9-e). Off, `consts::ensure_governance_ready()`
+# fails closed; a real deployment replaces the placeholders instead of enabling this feature.
+paytp-core = { path = "../../crates/paytp-core", features = ["demo-governance"] }
+# `test-helpers`: the wedge `channel.rs` illustration deploys splits/instances directly with
+# arbitrary demo seeds via the `deploy_*_unchecked` helpers (it demonstrates baseline↔channel meed
+# equivalence, not the seed↔recipients binding — that honest-binding claim lives in demos/wasm, on
+# the bound protocol path). See crates/paytp-rail deploy docs.
+paytp-rail = { path = "../../crates/paytp-rail", features = ["test-helpers"] }
+paytp-merchant = { path = "../../crates/paytp-merchant", features = ["demo"] }
+
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+base64 = "0.22"
+ureq = { version = "2", default-features = false, features = ["json"] }
+
+[[bin]]
+name = "wedge-merchant"
+path = "src/bin/merchant.rs"
+
+[[bin]]
+name = "wedge-agent"
+path = "src/bin/agent.rs"
+
+[[bin]]
+name = "wedge-channel"
+path = "src/bin/channel.rs"

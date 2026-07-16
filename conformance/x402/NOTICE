@@ -1,0 +1,31 @@
+NOTICE — vendored x402 specification files
+==========================================
+
+The following files in this directory are verbatim, frozen copies of the x402
+protocol specification, reproduced unmodified from the upstream project as an
+interoperability oracle and reference (see README.md for the pinned upstream
+paths):
+
+  - x402-specification-v2.md
+  - scheme_exact.md
+  - scheme_exact_svm.md
+
+Upstream project : x402  (https://github.com/coinbase/x402)
+Copyright        : Copyright (c) Coinbase, Inc. and the x402 contributors
+License          : Apache License, Version 2.0
+
+These files are distributed here under the terms of the Apache License, Version
+2.0. You may obtain a copy of the License at:
+
+  - the repository root, in the file LICENSE-APACHE, and
+  - https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, the vendored files are
+distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+either express or implied.
+
+These vendored specification files are NOT part of the PayTP reference
+implementation's own source. They carry their upstream Apache-2.0 license and
+copyright, not the PayTP project's own MIT OR Apache-2.0 license. They are
+included only so the RI's x402 envelope types and interop harness can be checked
+against the specification they interoperate with.

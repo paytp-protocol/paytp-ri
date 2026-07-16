@@ -1,0 +1,44 @@
+[workspace]
+resolver = "2"
+members = ["crates/paytp-core", "crates/paytp-rail", "crates/paytp-merchant", "crates/paytp-f7", "crates/paytp-wallet", "crates/paytp-client", "crates/paytp-host"]
+# The SVM contract kit (contracts/) is its own Anchor/SBF workspace with a
+# different compile target and dep set — excluded from the host workspace (M0.5).
+exclude = ["contracts"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/paytp-protocol/paytp-ri"
+authors = ["PayTP contributors"]
+
+# Dependency versions are pinned once here and inherited by member crates so the
+# crypto-provider boundary has one place to change.
+[workspace.dependencies]
+sha2 = "0.10"
+hmac = "0.12"
+hkdf = "0.12"
+ed25519-dalek = { version = "2", default-features = false, features = ["std", "rand_core"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+poly1305 = "0.8"
+subtle = "2"
+chacha20poly1305 = "0.10"
+hpke = { version = "0.12", default-features = false, features = ["x25519", "std"] }
+num-bigint = "0.4"
+num-integer = "0.1"
+num-traits = "0.2"
+unicode-normalization = "0.1"
+# F2.4 host normalization (paytp-host). Pinned EXACTLY: the resolved `idna` + its
+# ICU4X data crates ARE the UTS#46/Unicode table version conformed to — pinned here
+# and in Cargo.lock, bumped only as a deliberate table-version change.
+idna = "=1.1.0"
+zeroize = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+hex = "0.4"
+base64 = "0.22"
+proptest = "1"
+
+[profile.release]
+overflow-checks = true   # money math: never wrap silently, even in release

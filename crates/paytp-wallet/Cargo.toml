@@ -1,0 +1,38 @@
+[package]
+name = "paytp-wallet"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# The payer side (§11.1 wallet): custody + the WalletPolicy spend boundary +
+# two-leg/channel execution. Depends only on the core wire types and the rail
+# adapter — never on paytp-merchant (the counterparty). The WalletPolicy trait
+# (Part 1b) is the substitution boundary M7 drives a second wallet through.
+[dependencies]
+paytp-core = { path = "../paytp-core" }
+paytp-rail = { path = "../paytp-rail" }
+# The one shared F2.4 host normalizer — resolves the merchant's registrable domain
+# for the per-(merchant, domain) payer-key scope (F1-f/F2.3 unlinkability).
+paytp-host = { path = "../paytp-host" }
+# Zeroize the on-demand scoped signing seed so it never lingers after a sign.
+zeroize.workspace = true
+
+[features]
+# Exposes ChannelClient::open_with_secret (caller-supplied session secret + channel id) for
+# reproducible tests/vectors only. NOT enabled in production builds, so a production caller
+# cannot bypass open()'s CSPRNG-generated randomness.
+test-util = []
+
+[dev-dependencies]
+paytp-merchant = { path = "../paytp-merchant" }
+# `AcceptedBinding::for_test` for the channel-open tests (no full signed artifact stood up);
+# `demo-governance` lets the fund/sign value-path tests run on the placeholder governance
+# constants (F9-e) — fail-closed off in production builds; CI runs `--all-features`.
+paytp-core = { path = "../paytp-core", features = ["test-helpers", "demo-governance"] }
+num-bigint.workspace = true
+# The `deploy_instance_unchecked` low-level rail helper this crate's channel test-setup uses
+# (arbitrary seed; NOT the bound protocol deploy path). Not enabled in production builds.
+paytp-rail = { path = "../paytp-rail", features = ["test-helpers"] }

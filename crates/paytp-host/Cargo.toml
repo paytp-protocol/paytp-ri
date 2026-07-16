@@ -1,0 +1,17 @@
+[package]
+name = "paytp-host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "F2.4 host normalization (IDNA/UTS#46 + PSL registrable-domain) — the one shared normalizer used by both artifact HOST validation and payer-key scoping."
+
+[dependencies]
+# UTS#46 (non-transitional) + Punycode + STD3 + bidi/joiner checks. Pinned EXACTLY
+# (`=`) on purpose: the resolved `idna` + its ICU4X data crates ARE the Unicode
+# (UTS#46) table version this reference implementation conforms to (F2.4), so the
+# table is pinned here and in Cargo.lock, not floated by a caret range. Bump it only
+# as a deliberate, documented table-version change (mirrors the vendored PSL pin).
+idna = { workspace = true }

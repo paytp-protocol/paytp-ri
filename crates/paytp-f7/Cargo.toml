@@ -1,0 +1,16 @@
+[package]
+name = "paytp-f7"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+ruint = { version = "1", default-features = false }
+
+[dev-dependencies]
+num-bigint = "0.4"
+num-traits = "0.2"
+proptest = "1"

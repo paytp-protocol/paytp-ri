@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+Cargo.lock.orig
+.DS_Store
+# Cargo.lock IS committed — this is a binary/tooling workspace, and CI pins deps.
+
+# Local editor / agent tooling config (machine-specific absolute paths); never committed.
+.claude/

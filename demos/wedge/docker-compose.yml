@@ -1,0 +1,37 @@
+# The M8 wedge demo, clean-room. `docker compose up` builds the image, starts the
+# metered-API merchant, waits for it to be healthy, then runs the agent once. The
+# agent's exit code IS the assertion: a paid request AND a settled meed
+# end-to-end (it exits non-zero otherwise).
+#
+#   docker compose up --build --exit-code-from agent --abort-on-container-exit
+#
+# Build context is the repo root so the demo's path deps resolve; the Dockerfile
+# lives under demos/wedge/.
+services:
+  merchant:
+    build:
+      context: ../..
+      dockerfile: demos/wedge/Dockerfile
+    command: ["wedge-merchant"]
+    environment:
+      WEDGE_ADDR: "0.0.0.0:8402"
+    ports:
+      - "8402:8402"
+    healthcheck:
+      test: ["CMD", "wedge-agent", "--healthcheck"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  agent:
+    build:
+      context: ../..
+      dockerfile: demos/wedge/Dockerfile
+    depends_on:
+      merchant:
+        condition: service_healthy
+    environment:
+      WEDGE_URL: "http://merchant:8402"
+    # Baseline flow (asserts a paid request AND a settled meed), then the
+    # channel-upgrade demonstration (§10.7 crossover). Either non-zero exit fails.
+    command: ["sh", "-c", "wedge-agent 3 && wedge-channel 3"]

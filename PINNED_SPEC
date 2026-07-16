@@ -1,0 +1,37 @@
+# Pinned spec commit
+
+This reference implementation implements the PayTP formal interop specification
+(`spec/formal/`, rules F1–F10) at the exact spec commit pinned below. The formal
+spec is the source of truth: where the code and the spec disagree, the spec wins.
+
+    repo:   paytp-spec
+    commit: a4e6887
+    branch: main
+    date:   2026-07-16
+
+Conformance delta since the prior pin (`8dfa786`): the only `spec/formal/` change is the
+whitepaper version marker (v0.29 → **v0.30**, the published review draft) — no F1–F10 rule
+changed, so the conformance corpus is unaffected. The RI implements the spec's secure Tier-0
+model: F2-k origin authentication (`AcceptedBinding` / `accept_origin`), **both** F4-e modes —
+the compat single-leg baseline (settlement-authoritative Design A, `Wallet::pay_baseline`) and
+the secure two-leg (`Wallet::plan_two_leg`) — the F3-a mirror rule enforced on the wallet pay
+path (`Wallet::pay_baseline` requires a signed offer that mirrors the approved outer `accepts[]`
+entry), and the F9.3 REVOKED LEB128 annotation. The F4-e compat single-leg's payer-vs-payer
+redirect residual is a **stated, bounded** property of that mode (protocol-accounting-safe, not
+business-safe), not an exclusion. Scope limits stay as declared in `SCOPE.md`.
+
+The formal spec and the whitepaper are published at:
+
+  - Formal spec (the `Fx.y` / `Fx-y` anchors referenced throughout this code):
+    https://paytp.org/spec
+  - Whitepaper (the `§x.y` anchors):
+    https://paytp.org/whitepaper
+
+Anchor legend for comments in this repository:
+
+  - `Fx.y` / `Fx-y` — a rule in the formal spec (paytp.org/spec).
+  - `§x.y`         — a section of the whitepaper (paytp.org/whitepaper).
+
+The conformance-vector corpus in `conformance/` and the rule→test index in
+`conformance/COVERAGE.md` map each shipped spec rule to the executable test that
+exercises it, all against the pinned commit above.

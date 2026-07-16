@@ -1,0 +1,54 @@
+[package]
+name = "paytp-core"
+description = "PayTP wire codecs, canonical forms, crypto suite, entry-id derivation, and fee arithmetic — the canonical library bound into every role (spec/formal F1–F10)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+paytp-f7 = { path = "../paytp-f7" }
+# The one shared F2.4 host normalizer — the artifact HOST validation resolves through
+# the SAME API the wallet payer-key scope uses (never a lowercase-only parse).
+paytp-host = { path = "../paytp-host" }
+ruint = { version = "1", default-features = false }
+sha2.workspace = true
+hmac.workspace = true
+hkdf.workspace = true
+ed25519-dalek.workspace = true
+rand_core.workspace = true
+poly1305.workspace = true
+subtle.workspace = true
+chacha20poly1305.workspace = true
+hpke.workspace = true
+num-bigint.workspace = true
+num-integer.workspace = true
+num-traits.workspace = true
+unicode-normalization.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+
+[features]
+# Exposes `AcceptedBinding::for_test` (a channel-open binding WITHOUT artifact
+# verification) for downstream tests/demos exercising the open path without a full signed
+# artifact. NOT enabled in production, so a production build cannot forge artifact
+# acceptance (mirrors the paytp-rail `test-helpers` pattern).
+test-helpers = []
+# Opts a build into running the governed VALUE path on the release-bound PLACEHOLDER
+# governance constants (Dev Fund / independent-OS fund, F9-e). Enabled by the RI's own
+# demos/proofs/conformance/tests (CI runs `--all-features`); a production build leaves it
+# OFF, so `consts::ensure_governance_ready()` fails closed and no value decision can
+# settle to a sentinel. A real deployment replaces the placeholders (not this feature).
+demo-governance = []
+
+[dev-dependencies]
+hex.workspace = true
+proptest.workspace = true
+# Enable `demo-governance` for THIS crate's own test builds (registry / quote / consistency
+# governed-value tests run on the placeholder constants). Standard self-dev-dep feature-
+# unification trick (same pattern as paytp-merchant's `demo`); a plain `cargo build` and any
+# downstream consumer do NOT get it — that is the fail-closed default.
+paytp-core = { path = ".", features = ["demo-governance"] }

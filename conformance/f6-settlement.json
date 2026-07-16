@@ -1,0 +1,575 @@
+{
+  "section": "F6 settlement reconciliation + triggers (F6-f / F6.5)",
+  "note": "Grounds the settlement/trigger arithmetic by code. All integers are decimal strings (F1-c). 'reconcile-*' vectors drive the F6-f pure formulas (paytp-f7 reconcile); 'settleable'/'trigger'/'prepay-halt' drive channel::trigger. Both triggers gate on settleable (net leg due OR meed extinguishing E>=1, NOT P>=1); TH_VALUE=0 disables the value trigger, TH_TIME=0 disables the time trigger; window/evidence + close remain backstops. The exact 'unsettled = metered - rail-paid' position feeds these formulas. A reject vector expects {\"verdict\":\"reject\"}.",
+  "vectors": [
+    {
+      "id": "f6-meed-outstanding-001",
+      "class": "reconcile-meed",
+      "title": "Outstanding meed per role = accrued_r - \u03a3 E_r (F7 vector A after one round)",
+      "inputs": {
+        "accrued": [
+          "20000",
+          "4000",
+          "12000",
+          "4000"
+        ],
+        "settled_r": [
+          "16667",
+          "3334",
+          "9999",
+          "3333"
+        ]
+      },
+      "expect": {
+        "value": [
+          "3333",
+          "666",
+          "2001",
+          "667"
+        ]
+      }
+    },
+    {
+      "id": "f6-meed-outstanding-fresh-001",
+      "class": "reconcile-meed",
+      "title": "Nothing settled yet \u2192 outstanding == accrued",
+      "inputs": {
+        "accrued": [
+          "20000",
+          "4000"
+        ],
+        "settled_r": [
+          "0",
+          "0"
+        ]
+      },
+      "expect": {
+        "value": [
+          "20000",
+          "4000"
+        ]
+      }
+    },
+    {
+      "id": "f6-meed-outstanding-poison-reject-001",
+      "class": "reconcile-meed",
+      "title": "settled_r > accrued_r (a debtor-poisoned E_r) is an inconsistent history \u2192 reject, never floored",
+      "inputs": {
+        "accrued": [
+          "20000",
+          "4000"
+        ],
+        "settled_r": [
+          "20001",
+          "0"
+        ]
+      },
+      "expect": {
+        "verdict": "reject"
+      }
+    },
+    {
+      "id": "f6-carve-once-001",
+      "class": "reconcile-carve",
+      "title": "Meed carve floor(\u03a3 ACCRUALS / 10000) computed ONCE on the cumulative (floor(A)+floor(B) would undercount)",
+      "inputs": {
+        "accruals": [
+          "5000",
+          "5000"
+        ]
+      },
+      "expect": {
+        "value": "1"
+      }
+    },
+    {
+      "id": "f6-carve-once-002",
+      "class": "reconcile-carve",
+      "title": "Carve over a larger cumulative: \u03a3=200000 \u2192 20",
+      "inputs": {
+        "accruals": [
+          "200000"
+        ]
+      },
+      "expect": {
+        "value": "20"
+      }
+    },
+    {
+      "id": "f6-carve-sub-unit-001",
+      "class": "reconcile-carve",
+      "title": "Sub-10000 accruals carve to 0 (dust carries, never a zero-value leg)",
+      "inputs": {
+        "accruals": [
+          "4000",
+          "5999"
+        ]
+      },
+      "expect": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "f6-merchant-net-split-001",
+      "class": "reconcile-merchant-net",
+      "title": "Gross-vs-net split: CUM=100, carve=20 (\u03a3accruals=200000), no legs/funding \u2192 merchant-net 80 (meed not double-counted as principal)",
+      "inputs": {
+        "cum_total": "100",
+        "accruals": [
+          "200000"
+        ],
+        "net_legs_sum": "0",
+        "funding_sum": "0"
+      },
+      "expect": {
+        "value": "80"
+      }
+    },
+    {
+      "id": "f6-merchant-net-funded-once-001",
+      "class": "reconcile-merchant-net",
+      "title": "Window-reopening funding credited exactly once: merchant-net 80, funding 80 \u2192 0",
+      "inputs": {
+        "cum_total": "100",
+        "accruals": [
+          "200000"
+        ],
+        "net_legs_sum": "0",
+        "funding_sum": "80"
+      },
+      "expect": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "f6-merchant-net-overtransfer-floor-001",
+      "class": "reconcile-merchant-net",
+      "title": "Over-transfer floors to 0, never a negative merchant-net (F6.4 max(0,\u00b7) \u2014 the postpay-floor fix)",
+      "inputs": {
+        "cum_total": "100",
+        "accruals": [
+          "200000"
+        ],
+        "net_legs_sum": "0",
+        "funding_sum": "95"
+      },
+      "expect": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "f6-merchant-net-legs-and-funding-001",
+      "class": "reconcile-merchant-net",
+      "title": "CUM=1000, carve=0, net legs 300, funding 200 \u2192 500",
+      "inputs": {
+        "cum_total": "1000",
+        "accruals": [
+          "0"
+        ],
+        "net_legs_sum": "300",
+        "funding_sum": "200"
+      },
+      "expect": {
+        "value": "500"
+      }
+    },
+    {
+      "id": "f6-prepay-deposit-001",
+      "class": "reconcile-prepay-deposit",
+      "title": "Prepay unconsumed deposit = \u03a3 funding - CUM: 1000 funded, 300 consumed \u2192 700",
+      "inputs": {
+        "funding_sum": "1000",
+        "cum_total": "300"
+      },
+      "expect": {
+        "value": "700"
+      }
+    },
+    {
+      "id": "f6-prepay-deposit-exhausted-001",
+      "class": "reconcile-prepay-deposit",
+      "title": "Deposit fully consumed \u2192 0",
+      "inputs": {
+        "funding_sum": "500",
+        "cum_total": "500"
+      },
+      "expect": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "f6-prepay-deposit-overspend-reject-001",
+      "class": "reconcile-prepay-deposit",
+      "title": "Consumption exceeding the deposit is inconsistent (prepay never overspends) \u2192 reject, not floored",
+      "inputs": {
+        "funding_sum": "300",
+        "cum_total": "1000"
+      },
+      "expect": {
+        "verdict": "reject"
+      }
+    },
+    {
+      "id": "f6-settleable-net-leg-001",
+      "class": "settleable",
+      "title": "A due net leg is settleable (E may be 0)",
+      "inputs": {
+        "merchant_net": "500",
+        "e_extinguished": "0"
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "f6-settleable-meed-001",
+      "class": "settleable",
+      "title": "Meed extinguishing E>=1 is settleable (no net leg needed)",
+      "inputs": {
+        "merchant_net": "0",
+        "e_extinguished": "1"
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "f6-settleable-dust-trap-001",
+      "class": "settleable",
+      "title": "No net leg and E=0 (the sub-P dust trap, P>=1/E=0) \u2192 NOT settleable, compels no round",
+      "inputs": {
+        "merchant_net": "0",
+        "e_extinguished": "0"
+      },
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "id": "f6-trigger-value-reach-001",
+      "class": "trigger",
+      "title": "Settleable value reaching TH_VALUE fires the value round (rule is reach, >=)",
+      "inputs": {
+        "unsettled_value": "10000",
+        "settleable": true,
+        "now": "2000",
+        "last_settle": "2000",
+        "th_value": "10000",
+        "th_time": "3600"
+      },
+      "expect": {
+        "value": "value"
+      }
+    },
+    {
+      "id": "f6-trigger-below-001",
+      "class": "trigger",
+      "title": "Below TH_VALUE and not time-due \u2192 no round",
+      "inputs": {
+        "unsettled_value": "9999",
+        "settleable": true,
+        "now": "2000",
+        "last_settle": "2000",
+        "th_value": "10000",
+        "th_time": "3600"
+      },
+      "expect": {
+        "value": "none"
+      }
+    },
+    {
+      "id": "f6-trigger-time-001",
+      "class": "trigger",
+      "title": "Elapsed >= TH_TIME with settleable value \u2192 time round",
+      "inputs": {
+        "unsettled_value": "500",
+        "settleable": true,
+        "now": "5600",
+        "last_settle": "2000",
+        "th_value": "10000",
+        "th_time": "3600"
+      },
+      "expect": {
+        "value": "time"
+      }
+    },
+    {
+      "id": "f6-trigger-unsettleable-001",
+      "class": "trigger",
+      "title": "Value >= TH_VALUE but UNSETTLEABLE \u2192 no round (the dust-deadlock guard: a halted payer would wait forever)",
+      "inputs": {
+        "unsettled_value": "50000",
+        "settleable": false,
+        "now": "9000",
+        "last_settle": "2000",
+        "th_value": "10000",
+        "th_time": "3600"
+      },
+      "expect": {
+        "value": "none"
+      }
+    },
+    {
+      "id": "f6-trigger-value-precedence-001",
+      "class": "trigger",
+      "title": "Value takes precedence over time when both are due",
+      "inputs": {
+        "unsettled_value": "10000",
+        "settleable": true,
+        "now": "5600",
+        "last_settle": "2000",
+        "th_value": "10000",
+        "th_time": "3600"
+      },
+      "expect": {
+        "value": "value"
+      }
+    },
+    {
+      "id": "f6-trigger-th-value-zero-disables-001",
+      "class": "trigger",
+      "title": "TH_VALUE=0 disables the value trigger (time-only settlement) \u2014 value present, no fire",
+      "inputs": {
+        "unsettled_value": "50000",
+        "settleable": true,
+        "now": "2000",
+        "last_settle": "2000",
+        "th_value": "0",
+        "th_time": "3600"
+      },
+      "expect": {
+        "value": "none"
+      }
+    },
+    {
+      "id": "f6-trigger-th-value-zero-time-fires-001",
+      "class": "trigger",
+      "title": "TH_VALUE=0: the time trigger still fires when elapsed",
+      "inputs": {
+        "unsettled_value": "50000",
+        "settleable": true,
+        "now": "5600",
+        "last_settle": "2000",
+        "th_value": "0",
+        "th_time": "3600"
+      },
+      "expect": {
+        "value": "time"
+      }
+    },
+    {
+      "id": "f6-trigger-th-time-zero-disables-001",
+      "class": "trigger",
+      "title": "TH_TIME=0 disables the time trigger (value-only settlement) \u2014 huge elapsed, no fire",
+      "inputs": {
+        "unsettled_value": "500",
+        "settleable": true,
+        "now": "1002000",
+        "last_settle": "2000",
+        "th_value": "10000",
+        "th_time": "0"
+      },
+      "expect": {
+        "value": "none"
+      }
+    },
+    {
+      "id": "f6-trigger-th-time-zero-value-fires-001",
+      "class": "trigger",
+      "title": "TH_TIME=0: the value trigger still fires on reach",
+      "inputs": {
+        "unsettled_value": "10000",
+        "settleable": true,
+        "now": "1002000",
+        "last_settle": "2000",
+        "th_value": "10000",
+        "th_time": "0"
+      },
+      "expect": {
+        "value": "value"
+      }
+    },
+    {
+      "id": "f6-trigger-both-zero-001",
+      "class": "trigger",
+      "title": "Both thresholds 0 \u2192 both triggers disabled; settlement defers to window/close backstops",
+      "inputs": {
+        "unsettled_value": "999999",
+        "settleable": true,
+        "now": "1002000",
+        "last_settle": "2000",
+        "th_value": "0",
+        "th_time": "0"
+      },
+      "expect": {
+        "value": "none"
+      }
+    },
+    {
+      "id": "f6-prepay-halt-value-001",
+      "class": "prepay-halt",
+      "title": "A due value round halts the prepay wallet",
+      "inputs": {
+        "trigger": "value"
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "f6-prepay-halt-time-001",
+      "class": "prepay-halt",
+      "title": "A due time round halts the prepay wallet",
+      "inputs": {
+        "trigger": "time"
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "f6-prepay-halt-none-001",
+      "class": "prepay-halt",
+      "title": "No due round \u2192 the wallet keeps streaming (never stalls on an unsettleable position)",
+      "inputs": {
+        "trigger": "none"
+      },
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "id": "f6-stillborn-checkpoint-postpay-001",
+      "class": "stillborn-checkpoint",
+      "title": "F6-e stillborn synthetic checkpoint (postpay chained): deterministic bytes + no-sig reference; EVENTS=import kind 0x03",
+      "inputs": {
+        "channel_id": "0000000000000011",
+        "prepay": false,
+        "cum_total": "40000",
+        "accruals": [
+          {
+            "role": 16,
+            "num": "25000"
+          },
+          {
+            "role": 18,
+            "num": "15000"
+          }
+        ],
+        "settled_sum": "33333",
+        "net_legs_sum": "10000",
+        "funding_sum": "7000",
+        "timestamp": "1700000000",
+        "prev_ref": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+      },
+      "expect": {
+        "balance": "22997",
+        "bytes": "00080000000000000011010259d502029c40030902100261a812023a980408000000000000000005010006202f9c3ce67e77506eb82583e3a095a7f6a3d1bfc78be51502767b65e0cade47c90723010320a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a108046553f1000920a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "reference": "f36120cf68311b36e047050030e2d50a25a744ceee562467e046c336bfa56234"
+      }
+    },
+    {
+      "id": "f6-advance-own-cumulative-exact",
+      "class": "watermark-advance",
+      "title": "Option W (F6-o): first advance of a first-generation channel to its own-cumulative target; exact floor, zero residue",
+      "inputs": {
+        "accrued": ["750000", "150000", "450000", "150000"],
+        "imported_settled": ["0", "0", "0", "0"],
+        "funded_p_before": "0",
+        "bps": [50, 10, 30, 10]
+      },
+      "expect": {
+        "target_p": "150",
+        "delta": "150",
+        "payouts": ["75", "15", "45", "15"],
+        "residue": "0"
+      }
+    },
+    {
+      "id": "f6-advance-chain-boundary-dust",
+      "class": "watermark-advance",
+      "title": "Option W (F6-o) chain-boundary dust: a per-channel floor leaves a bounded 1-microunit §10.2 residue (target 151 = 75+15+45+15 + 1) — the F6.6-amendment case",
+      "inputs": {
+        "accrued": ["755000", "151000", "453000", "151000"],
+        "imported_settled": ["0", "0", "0", "0"],
+        "funded_p_before": "0",
+        "bps": [50, 10, 30, 10]
+      },
+      "expect": {
+        "target_p": "151",
+        "delta": "151",
+        "payouts": ["75", "15", "45", "15"],
+        "residue": "1"
+      }
+    },
+    {
+      "id": "f6-advance-own-cumulative-imported-successor",
+      "class": "watermark-advance",
+      "title": "Option W (v4) altitude: a chained successor advances its OWN carve only (100 = floor((2500000-1500000)/1e4)), never the whole-chain 250 — the predecessor's settled meed is subtracted",
+      "inputs": {
+        "accrued": ["1250000", "250000", "750000", "250000"],
+        "imported_settled": ["750000", "150000", "450000", "150000"],
+        "funded_p_before": "0",
+        "bps": [50, 10, 30, 10]
+      },
+      "expect": {
+        "target_p": "100",
+        "delta": "100",
+        "payouts": ["50", "10", "30", "10"],
+        "residue": "0"
+      }
+    },
+    {
+      "id": "f6-advance-idempotent-reissue",
+      "class": "watermark-advance",
+      "title": "Option W (F6-o) idempotency by absolute position: re-advancing to a target already funded distributes NOTHING (delta 0) — the crash/reorg/replay closure",
+      "inputs": {
+        "accrued": ["750000", "150000", "450000", "150000"],
+        "imported_settled": ["0", "0", "0", "0"],
+        "funded_p_before": "150",
+        "bps": [50, 10, 30, 10]
+      },
+      "expect": {
+        "target_p": "150",
+        "delta": "0",
+        "payouts": ["0", "0", "0", "0"],
+        "residue": "0"
+      }
+    },
+    {
+      "id": "f6-advance-subsequent-delta-only",
+      "class": "watermark-advance",
+      "title": "Option W (F6-o): a second advance from funded 150 to cumulative target 250 distributes ONLY the residual delta (100 = 50+10+30+10) — the interim-then-close move on the monotone watermark",
+      "inputs": {
+        "accrued": ["1250000", "250000", "750000", "250000"],
+        "imported_settled": ["0", "0", "0", "0"],
+        "funded_p_before": "150",
+        "bps": [50, 10, 30, 10]
+      },
+      "expect": {
+        "target_p": "250",
+        "delta": "100",
+        "payouts": ["50", "10", "30", "10"],
+        "residue": "0"
+      }
+    },
+    {
+      "id": "f6-advance-shared-destination-aggregates",
+      "class": "watermark-advance",
+      "title": "F6-o↔F7-d: three roles (0x10/0x12/0x13, bp 50/30/10) share ONE destination (a Development Fund) while 0x11 (bp 10) has its own — the advance floors ONCE per destination (bp_dev=90 → dev ⌊13·90/100⌋=11), never per-role (⌊6.5⌋+⌊3.9⌋+⌊1.3⌋=10, which strands a sub-unit on the chronically-shared dest). dests=[0,1,0,0] maps roles→destinations; payouts are per-destination [dev, other].",
+      "inputs": {
+        "accrued": ["65000", "13000", "39000", "13000"],
+        "imported_settled": ["0", "0", "0", "0"],
+        "funded_p_before": "0",
+        "bps": [50, 10, 30, 10],
+        "dests": [0, 1, 0, 0]
+      },
+      "expect": {
+        "target_p": "13",
+        "delta": "13",
+        "payouts": ["11", "1"],
+        "residue": "1"
+      }
+    }
+  ]
+}

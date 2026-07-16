@@ -1,0 +1,48 @@
+{
+  "section": "F7 fee arithmetic",
+  "note": "Canonical now — exact integers, reproducible from F7 by hand (F10.2). All integers are decimal strings (F1-c). 'divide' vectors give per-role outstanding numerators n_r (ascending role id) and rate p/q; expect P, E, per-role E_r, and whether an aggregate leg is carried (E >= 1). 'instance' vectors exercise F7-d claimable_d.",
+  "vectors": [
+    {
+      "id": "f7-divide-A-001",
+      "title": "Vector A: N=40000, rate 0.3 (3/10), roles 16..19 @ 50/10/30/10 bp",
+      "inputs": { "n_r": ["20000", "4000", "12000", "4000"], "rate": { "p": "3", "q": "10" } },
+      "expect": { "p": "1", "e": "33333", "e_r": ["16667", "3334", "9999", "3333"], "leg": true }
+    },
+    {
+      "id": "f7-divide-B-001",
+      "title": "Vector B: N=10000, rate 1.5 (3/2), roles @ 40/60 bp",
+      "inputs": { "n_r": ["4000", "6000"], "rate": { "p": "3", "q": "2" } },
+      "expect": { "p": "1", "e": "6666", "e_r": ["2667", "3999"], "leg": true }
+    },
+    {
+      "id": "f7-divide-trap-001",
+      "title": "Sub-extinguishment trap: N=1, rate 15000/1 -> P=1 but E=0 -> NO leg",
+      "inputs": { "n_r": ["1"], "rate": { "p": "15000", "q": "1" } },
+      "expect": { "p": "1", "e": "0", "e_r": ["0"], "leg": false }
+    },
+    {
+      "id": "f7-divide-zero-001",
+      "title": "N=0 no-op: nothing accrued -> no leg",
+      "inputs": { "n_r": ["0", "0"], "rate": { "p": "1", "q": "1" } },
+      "expect": { "p": "0", "e": "0", "e_r": ["0", "0"], "leg": false }
+    },
+    {
+      "id": "f7-divide-unity-001",
+      "title": "Unity rate (DENOM = BASELINE_ASSET): N=25000 -> P=2, E=20000",
+      "inputs": { "n_r": ["25000"], "rate": { "p": "1", "q": "1" } },
+      "expect": { "p": "2", "e": "20000", "e_r": ["20000"], "leg": true }
+    },
+    {
+      "id": "f7-instance-001",
+      "title": "Instance claimable_d: V=1, bp 40/100 -> 0",
+      "inputs": { "v_received": "1", "bp_d": "40", "bp_total": "100", "paid_d": "0" },
+      "expect": { "value": "0" }
+    },
+    {
+      "id": "f7-instance-002",
+      "title": "Instance claimable_d: V=2, bp 60/100 -> 1",
+      "inputs": { "v_received": "2", "bp_d": "60", "bp_total": "100", "paid_d": "0" },
+      "expect": { "value": "1" }
+    }
+  ]
+}

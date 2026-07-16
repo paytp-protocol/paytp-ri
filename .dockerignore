@@ -1,0 +1,7 @@
+# Keep build artefacts and vendored deps out of the Docker build context
+# (the M8 wedge demo builds from crates/ + demos/wedge/).
+target
+**/target
+**/node_modules
+.git
+contracts/target

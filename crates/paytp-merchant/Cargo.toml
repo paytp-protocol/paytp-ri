@@ -1,0 +1,39 @@
+[package]
+name = "paytp-merchant"
+description = "Merchant-side library: quote construction (F3.2 + F4.1 derivation), the durable MerchantStore (F4.4 consumed-nonce record), and redemption with settlement-precedes-delivery (F4.4)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[features]
+# Demo/virtual mode: exposes the non-durable in-memory stores and the permissive `demo`
+# constructors. A proof/production build (default features) CANNOT name them — the money-safety
+# construction enforcement. Tests enable them implicitly via `cfg(test)`.
+demo = []
+
+[dependencies]
+paytp-core = { path = "../paytp-core" }
+paytp-rail = { path = "../paytp-rail" }
+num-bigint.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+base64.workspace = true
+# Enable `demo-governance` for THIS crate's tests: the redeem/settlement integration tests run
+# the governed VALUE path on the release-bound placeholder governance constants (F9-e), which
+# `consts::ensure_governance_ready()` fails closed on in a non-demo build. A plain `cargo build`
+# and downstream consumers do NOT get it (fail-closed default; CI runs `--all-features`).
+paytp-core = { path = "../paytp-core", features = ["demo-governance"] }
+# The `deploy_*_unchecked` low-level rail helpers this crate's integration + carriage tests use
+# (arbitrary seeds; NOT the bound protocol deploy path). A production build of paytp-merchant does
+# NOT enable it — the value-path merchant code (`build_baseline_quote`, `build_two_leg_quote`) uses
+# the bound `deploy_split` / `deploy_instance`.
+paytp-rail = { path = "../paytp-rail", features = ["test-helpers"] }
+# Enable the `demo` feature for THIS crate's own test / example builds only (the in-memory stores
+# + `demo` constructors the integration tests and examples use). A plain `cargo build` and any
+# downstream consumer do NOT get it — that is the proof-build gating. (Standard self-dev-dep
+# feature-unification trick; unit tests are already covered by `cfg(test)`.)
+paytp-merchant = { path = ".", features = ["demo"] }

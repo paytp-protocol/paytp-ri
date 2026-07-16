@@ -1,0 +1,15 @@
+{
+  "name": "paytp-x402-interop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "M6 interop harness: validate the RI's x402 402 against the REAL x402 npm package (shipped tooling), and prove a plain exact-svm client would pay the PayTP baseline split.",
+  "scripts": {
+    "test": "node validate.mjs"
+  },
+  "dependencies": {
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4",
+    "x402": "1.2.0"
+  }
+}

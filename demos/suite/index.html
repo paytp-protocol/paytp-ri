@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PayTP — the demo is the proof</title>
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="mark" aria-hidden="true">◆</span>
+    <div>
+      <h1>PayTP <span class="dim">— the demo is the proof</span></h1>
+      <p class="sub">Every number below is the <b>real baseline-profile reference implementation</b> executing in your browser (WebAssembly), not a mock. Watch the money split on the wire.</p>
+    </div>
+  </div>
+  <button id="theme" class="theme" title="Toggle light/dark" aria-label="Toggle theme">◐</button>
+</header>
+
+<div class="layout">
+  <nav id="nav" class="nav" aria-label="Demos"></nav>
+
+  <main class="stage">
+    <div id="engine-status" class="status" role="status">Loading the PayTP core (WASM)…</div>
+
+    <section id="demo" class="demo" hidden>
+      <div class="demo-head">
+        <h2 id="demo-title"></h2>
+        <p id="demo-proves" class="proves"></p>
+        <div class="controls">
+          <span id="demo-tier" class="tag"></span>
+          <div id="demo-inputs" class="inputs"></div>
+          <button id="run" class="run">Run ▸</button>
+        </div>
+      </div>
+
+      <div id="viz" class="viz" aria-live="polite"></div>
+
+      <details id="hood" class="hood">
+        <summary>Under the hood — the wire facts</summary>
+        <div id="hood-note" class="hood-note"></div>
+        <pre id="hood-trace" class="trace"></pre>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer class="foot">
+  <span>Settling on the in-process virtual rail (deterministic F7-d division). The identical split lands on a live Solana validator in <code>interop/x402/</code>. Amounts are shown in <b>USDC</b> (the demo's asset, 6 decimals); the protocol settles integer minor units of <em>any</em> asset — it is denomination-agnostic (the same flow renders EURC, SOL, a game token, …).</span>
+</footer>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

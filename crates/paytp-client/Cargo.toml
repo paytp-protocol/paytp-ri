@@ -1,0 +1,30 @@
+[package]
+name = "paytp-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# The interaction layer (§10.3): discovery, PayTP-Roles assembly, the Tier 0
+# flow, and the §10.4 external-wallet selection seam. It drives a wallet behind
+# the WalletPolicy trait (paytp-wallet), never a bundled one.
+[dependencies]
+paytp-core = { path = "../paytp-core" }
+paytp-host = { path = "../paytp-host" }
+paytp-rail = { path = "../paytp-rail" }
+paytp-wallet = { path = "../paytp-wallet" }
+
+[dev-dependencies]
+# `AcceptedBinding::for_test` for the channel-open integration tests (no full signed artifact);
+# `demo-governance` lets the Tier-0 flow / substitution tests run the governed value path on the
+# placeholder governance constants (F9-e) — fail-closed off in production; CI runs `--all-features`.
+paytp-core = { path = "../paytp-core", features = ["test-helpers", "demo-governance"] }
+# `demo` exposes the in-memory `InMemoryStore` the substitution test uses (feature-gated out of a
+# proof build); this is a dev-dependency, so it stays out of the non-test build.
+paytp-merchant = { path = "../paytp-merchant", features = ["demo"] }
+num-bigint.workspace = true
+# Enable the wallet's test-only deterministic channel open for the integration tests
+# (resolver 2 keeps this feature out of the non-test build).
+paytp-wallet = { path = "../paytp-wallet", features = ["test-util"] }
